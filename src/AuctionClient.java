@@ -14,11 +14,20 @@ public class AuctionClient extends JFrame {
     private JTextField bidInputField;
     private JTextField itemInputField;
     private JTextField bidderInputField;
+    private UserAuthentication userAuth;
+    private String loggedInUser;
 
     public AuctionClient() {
+        userAuth = new UserAuthentication();
         setTitle("Auction Client");
         setSize(600, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Show login screen before initializing the auction interface
+        if (!login()) {
+            JOptionPane.showMessageDialog(this, "Login failed. Closing application.");
+            System.exit(0);
+        }
 
         // Display area for auction items
         itemDisplayArea = new JTextArea();
@@ -34,7 +43,8 @@ public class AuctionClient extends JFrame {
         bidInputField = new JTextField();
         inputPanel.add(bidInputField);
         inputPanel.add(new JLabel("Your Name:"));
-        bidderInputField = new JTextField();
+        bidderInputField = new JTextField(loggedInUser); // Set the logged-in user's name
+        bidderInputField.setEditable(false); // Disable editing
         inputPanel.add(bidderInputField);
 
         JButton bidButton = new JButton("Place Bid");
@@ -45,6 +55,22 @@ public class AuctionClient extends JFrame {
 
         connectToServer();
         startItemRefresh();
+    }
+
+    private boolean login() {
+        while (true) {
+            String username = JOptionPane.showInputDialog(this, "Enter Username:");
+            String password = JOptionPane.showInputDialog(this, "Enter Password:");
+            if (username == null || password == null) return false; // User canceled
+
+            if (userAuth.authenticate(username, password)) {
+                loggedInUser = username;
+                JOptionPane.showMessageDialog(this, "Login successful! Welcome, " + username);
+                return true;
+            } else {
+                JOptionPane.showMessageDialog(this, "Invalid username or password. Try again.");
+            }
+        }
     }
 
     private void connectToServer() {
@@ -61,24 +87,22 @@ public class AuctionClient extends JFrame {
     private void placeBid() {
         String item = itemInputField.getText().trim();
         String bid = bidInputField.getText().trim();
-        String bidder = bidderInputField.getText().trim();
 
-        if (item.isEmpty() || bid.isEmpty() || bidder.isEmpty()) {
-            appendToDisplay("Item, bid amount, and bidder name must not be empty.\n");
+        if (item.isEmpty() || bid.isEmpty()) {
+            appendToDisplay("Item and bid amount must not be empty.\n");
             return;
         }
 
         try {
             int bidValue = Integer.parseInt(bid);
-            out.println("BID:" + item + ":" + bidValue + ":" + bidder);
-            appendToDisplay("Placed bid on " + item + " for ₱" + bidValue + " by " + bidder + "\n");
+            out.println("BID:" + item + ":" + bidValue + ":" + loggedInUser);
+            appendToDisplay("Placed bid on " + item + " for ₱" + bidValue + " by " + loggedInUser + "\n");
         } catch (NumberFormatException e) {
             appendToDisplay("Invalid bid amount.\n");
         }
     }
 
     private void startItemRefresh() {
-        // Periodically refresh the item list
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(this::viewItems, 0, 3, TimeUnit.SECONDS);
     }
@@ -90,12 +114,10 @@ public class AuctionClient extends JFrame {
             String response;
 
             while ((response = in.readLine()) != null) {
-                // If server response includes an end signal, break the loop
                 if (response.equals("END")) break;
                 itemList.append(response).append("\n");
             }
 
-            // Update the display area
             SwingUtilities.invokeLater(() -> itemDisplayArea.setText(itemList.toString()));
         } catch (IOException e) {
             appendToDisplay("Error retrieving items.\n");
@@ -110,3 +132,4 @@ public class AuctionClient extends JFrame {
         SwingUtilities.invokeLater(() -> new AuctionClient().setVisible(true));
     }
 }
+
