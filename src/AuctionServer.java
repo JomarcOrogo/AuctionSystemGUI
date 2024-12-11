@@ -58,6 +58,11 @@ public class AuctionServer {
                 processBid(item, bid, bidder);
             } else if (action.equals("VIEW")) {
                 sendAuctionItems();
+            } else if (action.equals("ADD_ITEM")) {
+                String itemName = messageParts[1];
+                int startPrice = Integer.parseInt(messageParts[2]);
+                int auctionTime = Integer.parseInt(messageParts[3]);
+                addAuctionItem(itemName, startPrice, auctionTime);
             }
         }
 
@@ -92,17 +97,28 @@ public class AuctionServer {
                 e.printStackTrace();
             }
         }
+
+        private void addAuctionItem(String itemName, int startPrice, int auctionTime) {
+            if (!auctionItems.containsKey(itemName)) {
+                AuctionItem newItem = new AuctionItem(startPrice, "none", auctionTime * 60000); // Convert minutes to milliseconds
+                auctionItems.put(itemName, newItem);
+                System.out.println("New item added to auction: " + itemName);
+                sendAuctionItems(); // Send the updated item list to all clients
+            } else {
+                out.println("Item already exists: " + itemName);
+            }
+        }
     }
 
     static class AuctionItem {
         private int bidPrice;
         private String bidder;
-        private long auctionEndTime; // timestamp for when the auction ends
+        private long auctionEndTime;
 
         public AuctionItem(int bidPrice, String bidder, long auctionDurationInMillis) {
             this.bidPrice = bidPrice;
             this.bidder = bidder;
-            this.auctionEndTime = System.currentTimeMillis() + auctionDurationInMillis; // Set auction end time
+            this.auctionEndTime = System.currentTimeMillis() + auctionDurationInMillis;
         }
 
         public int getBidPrice() {
@@ -125,7 +141,6 @@ public class AuctionServer {
             return auctionEndTime;
         }
 
-        // Returns remaining time in minutes
         public String getRemainingTime() {
             long remainingTime = auctionEndTime - System.currentTimeMillis();
             if (remainingTime <= 0) {

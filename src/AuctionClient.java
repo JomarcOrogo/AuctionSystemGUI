@@ -13,7 +13,7 @@ public class AuctionClient extends JFrame {
     private BufferedReader in;
     private JTable itemTable;
     private DefaultTableModel tableModel;
-    private JButton bidButton;
+    private JButton bidButton, addItemButton;
     private UserAuthentication userAuth;
     private String loggedInUser;
 
@@ -39,6 +39,12 @@ public class AuctionClient extends JFrame {
         bidButton.addActionListener(e -> handleBid());
         JPanel bidPanel = new JPanel();
         bidPanel.add(bidButton);
+
+        // Add Item button
+        addItemButton = new JButton("Auction Item");
+        addItemButton.addActionListener(e -> handleAddItem());
+        bidPanel.add(addItemButton);
+
         add(bidPanel, BorderLayout.SOUTH);
 
         connectToServer();
@@ -91,6 +97,32 @@ public class AuctionClient extends JFrame {
             appendToDisplay("Placed bid on " + item + " for ₱" + bidValue + " by " + loggedInUser + "\n");
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Invalid bid amount.");
+        }
+    }
+
+    private void handleAddItem() {
+        String itemName = JOptionPane.showInputDialog(this, "Enter item name:");
+        if (itemName == null || itemName.trim().isEmpty()) {
+            return;
+        }
+
+        String priceInput = JOptionPane.showInputDialog(this, "Enter starting price (₱):");
+        if (priceInput == null || priceInput.trim().isEmpty()) {
+            return;
+        }
+
+        String timeInput = JOptionPane.showInputDialog(this, "Enter auction time (minutes):");
+        if (timeInput == null || timeInput.trim().isEmpty()) {
+            return;
+        }
+
+        try {
+            int startPrice = Integer.parseInt(priceInput.trim());
+            int auctionTime = Integer.parseInt(timeInput.trim());
+            out.println("ADD_ITEM:" + itemName + ":" + startPrice + ":" + auctionTime);
+            appendToDisplay("Added item: " + itemName + " with a starting price of ₱" + startPrice + " and " + auctionTime + " minutes auction time.\n");
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Invalid price or time.");
         }
     }
 
