@@ -4,6 +4,8 @@ import java.io.*;
 import java.net.*;
 import java.util.concurrent.*;
 
+//Jomarc Orogo
+
 public class AuctionClient extends JFrame {
     private static final String SERVER_IP = "192.168.2.101";
     private static final int SERVER_PORT = 12345;
