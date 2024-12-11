@@ -1,15 +1,20 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class AuctionServer {
     private static final int PORT = 12345;
     private static final String SERVER_IP = "192.168.2.101";
     private static Map<String, AuctionItem> auctionItems = new HashMap<>();
+    private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static void main(String[] args) {
         auctionItems.put("Sofa", new AuctionItem(1000, "none", 60000)); // 5 minutes auction duration
         auctionItems.put("Table", new AuctionItem(2000, "none", 60000)); // 5 minutes auction duration
+
+        // Schedule a task to check auction status every 1 second
+        scheduler.scheduleAtFixedRate(AuctionServer::checkAuctions, 0, 1, TimeUnit.SECONDS);
 
         try (ServerSocket serverSocket = new ServerSocket(PORT, 50, InetAddress.getByName(SERVER_IP))) {
             System.out.println("Auction Server started on " + SERVER_IP + ":" + PORT);
@@ -20,6 +25,19 @@ public class AuctionServer {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void checkAuctions() {
+        for (Map.Entry<String, AuctionItem> entry : auctionItems.entrySet()) {
+            AuctionItem item = entry.getValue();
+            if (item.isAuctionOver()) {
+                // Auction is over, save the result
+                if (!item.isResultSaved()) {
+                    AuctionResultSaver.saveAuctionResult(entry.getKey(), item.getBidder(), item.getBidPrice());
+                    item.setResultSaved(true); // Mark that result has been saved
+                }
+            }
         }
     }
 
@@ -114,6 +132,7 @@ public class AuctionServer {
         private int bidPrice;
         private String bidder;
         private long auctionEndTime;
+        private boolean resultSaved = false; // Track whether result has been saved
 
         public AuctionItem(int bidPrice, String bidder, long auctionDurationInMillis) {
             this.bidPrice = bidPrice;
@@ -151,6 +170,14 @@ public class AuctionServer {
 
         public boolean isAuctionOver() {
             return System.currentTimeMillis() >= auctionEndTime;
+        }
+
+        public boolean isResultSaved() {
+            return resultSaved;
+        }
+
+        public void setResultSaved(boolean resultSaved) {
+            this.resultSaved = resultSaved;
         }
     }
 }
