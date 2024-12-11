@@ -29,7 +29,7 @@ public class AuctionClient extends JFrame {
         }
 
         // Table for auction items
-        tableModel = new DefaultTableModel(new String[]{"Item", "Price (₱)", "Bidder"}, 0);
+        tableModel = new DefaultTableModel(new String[]{"Item", "Price (₱)", "Bidder", "Time Left"}, 0);
         itemTable = new JTable(tableModel);
         itemTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         add(new JScrollPane(itemTable), BorderLayout.CENTER);
@@ -112,8 +112,9 @@ public class AuctionClient extends JFrame {
                 String item = parts[0].trim();
                 String price = parts[1].trim();
                 String bidder = parts[2].trim();
+                String remainingTime = parts[3].trim(); // Get remaining time
 
-                SwingUtilities.invokeLater(() -> tableModel.addRow(new Object[]{item, price, bidder}));
+                SwingUtilities.invokeLater(() -> tableModel.addRow(new Object[]{item, price, bidder, remainingTime}));
             }
         } catch (IOException e) {
             appendToDisplay("Error retrieving items.\n");

@@ -8,8 +8,8 @@ public class AuctionServer {
     private static Map<String, AuctionItem> auctionItems = new HashMap<>();
 
     public static void main(String[] args) {
-        auctionItems.put("Item1", new AuctionItem(1000, "none"));
-        auctionItems.put("Item2", new AuctionItem(2000, "none"));
+        auctionItems.put("Sofa", new AuctionItem(1000, "none", 60000)); // 5 minutes auction duration
+        auctionItems.put("Table", new AuctionItem(2000, "none", 60000)); // 5 minutes auction duration
 
         try (ServerSocket serverSocket = new ServerSocket(PORT, 50, InetAddress.getByName(SERVER_IP))) {
             System.out.println("Auction Server started on " + SERVER_IP + ":" + PORT);
@@ -64,12 +64,16 @@ public class AuctionServer {
         private void processBid(String item, int bid, String bidder) {
             if (auctionItems.containsKey(item)) {
                 AuctionItem currentItem = auctionItems.get(item);
-                if (bid > currentItem.getBidPrice()) {
-                    currentItem.setBidPrice(bid);
-                    currentItem.setBidder(bidder);
-                    System.out.println("New bid for " + item + ": ₱" + bid + " by " + bidder);
+                if (currentItem.isAuctionOver()) {
+                    System.out.println("Auction ended for " + item + ". Final bid: ₱" + currentItem.getBidPrice());
                 } else {
-                    System.out.println("Rejected bid for " + item + ": ₱" + bid);
+                    if (bid > currentItem.getBidPrice()) {
+                        currentItem.setBidPrice(bid);
+                        currentItem.setBidder(bidder);
+                        System.out.println("New bid for " + item + ": ₱" + bid + " by " + bidder);
+                    } else {
+                        System.out.println("Rejected bid for " + item + ": ₱" + bid);
+                    }
                 }
             } else {
                 System.out.println("Item not found: " + item);
@@ -80,7 +84,8 @@ public class AuctionServer {
             try {
                 for (Map.Entry<String, AuctionItem> entry : auctionItems.entrySet()) {
                     AuctionItem item = entry.getValue();
-                    out.println(entry.getKey() + " | ₱" + item.getBidPrice() + " | " + item.getBidder());
+                    String remainingTime = item.getRemainingTime(); // Get remaining time for the auction
+                    out.println(entry.getKey() + " | ₱" + item.getBidPrice() + " | " + item.getBidder() + " | " + remainingTime);
                 }
                 out.println("END"); // End of item list
             } catch (Exception e) {
@@ -92,10 +97,12 @@ public class AuctionServer {
     static class AuctionItem {
         private int bidPrice;
         private String bidder;
+        private long auctionEndTime; // timestamp for when the auction ends
 
-        public AuctionItem(int bidPrice, String bidder) {
+        public AuctionItem(int bidPrice, String bidder, long auctionDurationInMillis) {
             this.bidPrice = bidPrice;
             this.bidder = bidder;
+            this.auctionEndTime = System.currentTimeMillis() + auctionDurationInMillis; // Set auction end time
         }
 
         public int getBidPrice() {
@@ -112,6 +119,23 @@ public class AuctionServer {
 
         public void setBidder(String bidder) {
             this.bidder = bidder;
+        }
+
+        public long getAuctionEndTime() {
+            return auctionEndTime;
+        }
+
+        // Returns remaining time in minutes
+        public String getRemainingTime() {
+            long remainingTime = auctionEndTime - System.currentTimeMillis();
+            if (remainingTime <= 0) {
+                return "Auction Ended";
+            }
+            return String.format("%02d:%02d", (remainingTime / 60000), (remainingTime / 1000) % 60);
+        }
+
+        public boolean isAuctionOver() {
+            return System.currentTimeMillis() >= auctionEndTime;
         }
     }
 }
