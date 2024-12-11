@@ -29,17 +29,25 @@ public class AuctionServer {
     }
 
     private static void checkAuctions() {
-        for (Map.Entry<String, AuctionItem> entry : auctionItems.entrySet()) {
+        Iterator<Map.Entry<String, AuctionItem>> iterator = auctionItems.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<String, AuctionItem> entry = iterator.next();
             AuctionItem item = entry.getValue();
+
             if (item.isAuctionOver()) {
-                // Auction is over, save the result
-                if (!item.isResultSaved()) {
+                // Save the result only if there's a valid bidder
+                if (!item.isResultSaved() && !item.getBidder().equals("none")) {
                     AuctionResultSaver.saveAuctionResult(entry.getKey(), item.getBidder(), item.getBidPrice());
                     item.setResultSaved(true); // Mark that result has been saved
                 }
+                // Remove the item after auction ends
+                iterator.remove();
+                System.out.println("Auction ended for " + entry.getKey() + ". Item removed.");
             }
         }
     }
+
 
     static class ClientHandler implements Runnable {
         private Socket clientSocket;

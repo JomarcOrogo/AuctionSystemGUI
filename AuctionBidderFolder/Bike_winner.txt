@@ -1,0 +1,4 @@
+Item: Bike
+Winning Bidder: Mike
+Final Bid: ₱2600
+Congratulations for Winning!
